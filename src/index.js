@@ -7,6 +7,7 @@ import cookieParser from "cookie-parser";
 import userRouter from "./routes/user.routes.js";
 import buyerRouter from "./routes/buyer.routes.js";
 import workerRouter from "./routes/worker.routes.js";
+import adminRouter from "./routes/admin.routes.js";
 const app = express();
 
 // Define allowed origins for development and production
@@ -49,6 +50,7 @@ app.use(express.urlencoded({ extended: false }));
 app.use("/api/user", userRouter);
 app.use("api/buyer", buyerRouter);
 app.use("/api/worker", workerRouter);
+app.use("/api/admin", adminRouter);
 
 
 // Start the server

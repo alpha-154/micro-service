@@ -66,13 +66,15 @@ export const createTask = async (req, res) => {
     await newTask.save();
 
     // Step 6: Respond with success message and task details
-    res.status(201).json({
+    return res.status(201).json({
       message: "Task created successfully",
       task: newTask,
     });
   } catch (error) {
     console.error(error);
-    res.status(500).json({ message: "Server error. Please try again later." });
+    return res
+      .status(500)
+      .json({ message: "Server error. Please try again later." });
   }
 };
 
@@ -97,13 +99,13 @@ export const getAllTasksByUserUid = async (req, res) => {
     const tasks = await Task.find({ createdBy: user._id });
 
     // Step 3: Respond with the list of tasks
-    res.status(200).json({
+    return res.status(200).json({
       message: "Tasks retrieved successfully",
       tasks,
     });
   } catch (error) {
     console.error("Error retrieving tasks:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error. Unable to retrieve tasks. Please try again later.",
     });
@@ -160,7 +162,7 @@ export const getAllTasksWithSubmissionData = async (req, res) => {
     });
 
     // Step 5: Respond with the aggregated stats and pending tasks
-    res.status(200).json({
+    return res.status(200).json({
       message: "Buyer task stats retrieved successfully",
       stats: {
         totalTasks,
@@ -171,7 +173,7 @@ export const getAllTasksWithSubmissionData = async (req, res) => {
     });
   } catch (error) {
     console.error("Error fetching buyer task stats:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error. Unable to retrieve buyer task stats. Please try again later.",
     });
@@ -218,12 +220,12 @@ export const approveSubmission = async (req, res) => {
     await submission.save();
 
     // Step 6: Respond with success
-    res.status(200).json({
+    return res.status(200).json({
       message: "Submission approved successfully",
     });
   } catch (error) {
     console.error("Error approving submission:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error. Unable to approve submission. Please try again later.",
     });
@@ -252,13 +254,13 @@ export const rejectSubmission = async (req, res) => {
     await submission.save();
 
     // Step 3: Respond with success
-    res.status(200).json({
+    return res.status(200).json({
       message: "Submission rejected successfully",
       submission,
     });
   } catch (error) {
     console.error("Error rejecting submission:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message:
         "Server error. Unable to reject submission. Please try again later.",
     });
@@ -302,12 +304,12 @@ export const updateTask = async (req, res) => {
     await task.save();
 
     // Step 5: Respond with success
-    res.status(200).json({
+    return res.status(200).json({
       message: "Task updated successfully",
     });
   } catch (error) {
     console.error("Error updating task:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error. Unable to update task. Please try again later.",
     });
   }
@@ -341,12 +343,12 @@ export const deleteTask = async (req, res) => {
     await task.remove();
 
     // Step 5: Respond with success
-    res.status(200).json({
+    return res.status(200).json({
       message: "Task deleted successfully",
     });
   } catch (error) {
     console.error("Error deleting task:", error);
-    res.status(500).json({
+    return res.status(500).json({
       message: "Server error. Unable to delete task. Please try again later.",
     });
   }
