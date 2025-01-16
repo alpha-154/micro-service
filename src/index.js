@@ -10,6 +10,7 @@ import workerRouter from "./routes/worker.routes.js";
 import adminRouter from "./routes/admin.routes.js";
 const app = express();
 
+
 // Define allowed origins for development and production
 const allowedOrigins = [
   process.env.CORS_ORIGIN_DEVELOPMENT, // Development origin
@@ -48,7 +49,7 @@ app.use(express.urlencoded({ extended: false }));
 
 // Routes configuration
 app.use("/api/user", userRouter);
-app.use("api/buyer", buyerRouter);
+app.use("/api/buyer", buyerRouter);
 app.use("/api/worker", workerRouter);
 app.use("/api/admin", adminRouter);
 

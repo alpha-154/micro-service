@@ -23,19 +23,26 @@ export const registerUser = async (req, res) => {
         .status(409)
         .json({ message: "User with this UID or email already exists." });
     }
-
-    if (role === "worker") coins = 10;
-    else coins = 50;
+    let coins;
+    if (role === "WORKER") coins = 10;
+    else if (role === "BUYER") coins = 50;
+    else coins = 0;
 
     // Create a new user in the database
-    const newUser = await User.create({
+    const newUser = new User({
       firebaseUid,
       username,
       email,
       profileImage,
       role,
-      coins,
     });
+
+    if (coins > 0) {
+      newUser.coins = coins;
+    }
+
+    // Save the new user to the database
+    await newUser.save();
 
     // Return a success response
     res.status(201).json({
@@ -46,7 +53,6 @@ export const registerUser = async (req, res) => {
         email: newUser.email,
         profileImage: newUser.profileImage,
         role: newUser.role,
-        coins: newUser.coins,
       },
     });
   } catch (error) {
@@ -124,7 +130,7 @@ export const registerUserWithGoogle = async (req, res) => {
       username,
       email,
       profileImage,
-      role: "Worker",
+      role: "WORKER",
       coins: 10,
     });
 

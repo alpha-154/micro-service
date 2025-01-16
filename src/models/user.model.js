@@ -22,12 +22,11 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ["Worker", "Buyer", "Admin"],
+    enum: ["WORKER", "BUYER", "ADMIN"],
     required: true,
   },
   coins: {
     type: Number,
-    required: true,
   },
 });
 

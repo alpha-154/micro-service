@@ -34,6 +34,11 @@ export const createTask = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: "User not found" });
     }
+   //console.log("user", user, "user role", user.role);
+
+    if(user.role !== "BUYER"){
+      return res.status(403).json({ message: "You are not authorized to create tasks" });
+    }
 
     // Step 2: Calculate the total amount of coins needed
     const coinsNeeded = payableAmount * requiredWorkers;
@@ -318,7 +323,7 @@ export const updateTask = async (req, res) => {
 // Controller to delete a task
 export const deleteTask = async (req, res) => {
   try {
-    const { uid, taskId } = req.body;
+    const { uid, taskId } = req.params;
 
     // Step 1: Find the user by firebaseUid
     const user = await User.findOne({ firebaseUid: uid });
@@ -340,7 +345,7 @@ export const deleteTask = async (req, res) => {
     }
 
     // Step 4: Delete the task
-    await task.remove();
+    await Task.findByIdAndDelete(taskId); // Corrected deletion method
 
     // Step 5: Respond with success
     return res.status(200).json({
@@ -353,3 +358,4 @@ export const deleteTask = async (req, res) => {
     });
   }
 };
+

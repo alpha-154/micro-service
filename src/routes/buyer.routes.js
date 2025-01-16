@@ -20,6 +20,6 @@ router.post("/create-task", createTask);
 router.post("/approve-submission", approveSubmission);
 router.post("/reject-submission", rejectSubmission);
 router.patch("/update-task", updateTask);
-router.delete("/delete-task", deleteTask);
+router.delete("/delete-task/:uid/:taskId", deleteTask);
 
 export default router;
