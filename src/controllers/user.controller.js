@@ -73,22 +73,27 @@ export const registerUser = async (req, res) => {
 // Controller to generate a JWT token for a user
 export const generateToken = async (req, res) => {
   try {
-    const { uid, email, displayName, photoURL, role } = req.body;
+    const { firebaseUid, username, email, profileImage } = req.body;
 
     // Ensure all required fields are present
-    if (!uid || !email) {
+    if (!firebaseUid || !email) {
       return res
         .status(400)
         .json({ message: "Missing required user information." });
     }
 
+    // accessing the User document from the db
+    const existingUser = await User.findOne({ firebaseUid });
+    if (!existingUser)
+      return res.status(403).json({ message: "User doesn't exits!" });
+
     // Payload for the JWT
     const payload = {
-      uid,
-      email,
-      displayName,
-      photoURL,
-      role,
+      firebaseUid: existingUser.firebaseUid,
+      username: existingUser.username,
+      email: existingUser.email,
+      profileImage: existingUser.profileImage,
+      role: existingUser.role,
     };
 
     // Generate a token with a secret key and expiration
@@ -96,7 +101,17 @@ export const generateToken = async (req, res) => {
       expiresIn: "5h", // Token validity
     });
 
-    return res.status(200).json({ token });
+    return res.status(200).json({
+      token,
+      user: {
+        firebaseUid: existingUser.firebaseUid,
+        username: existingUser.username,
+        email: existingUser.email,
+        profileImage: existingUser.profileImage,
+        role: existingUser.role,
+        coin: existingUser.coins,
+      },
+    });
   } catch (error) {
     console.error("Error generating token:", error);
     return res.status(500).json({ message: "Internal Server Error" });
@@ -137,10 +152,52 @@ export const registerUserWithGoogle = async (req, res) => {
     await newUser.save();
 
     // Return 201 status for a successfully created user
-    return res.status(201).json({ message: "User registered successfully!" });
+    return res.status(201).json({ 
+      message: "User registered successfully!",
+      user: {
+        firebaseUid: newUser.firebaseUid,
+        username: newUser.username,
+        email: newUser.email,
+        profileImage: newUser.profileImage,
+        role: newUser.role,
+      },
+    });
   } catch (error) {
     console.error("Error in registerUser:", error);
     // Handle potential errors
+    return res.status(500).json({ message: "Internal Server Error" });
+  }
+};
+
+
+// Controller to access user profile
+export const accessUserProfile = async (req, res) => {
+  try {
+    const { uid } = req.params;
+    if(!uid){
+      return res.status(404).json({ message : "UID isn't provided!"})
+    }
+
+    // Find the user by firebaseUid
+    const user = await User.findOne({ firebaseUid: uid });
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    return res.status(200).json({
+      message: "User profile accessed successfully.",
+      user: {
+        firebaseUid: user.firebaseUid,
+        username: user.username,
+        email: user.email,
+        profileImage: user.profileImage,
+        role: user.role,
+        coins: user.coins,
+      },
+    });
+  } catch (error) {
+    console.error("Error accessing user profile:", error);
     return res.status(500).json({ message: "Internal Server Error" });
   }
 };
