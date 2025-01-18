@@ -137,7 +137,7 @@ export const getAllTasksWithSubmissionData = async (req, res) => {
     // Step 2: Fetch all tasks for the user and populate submissions
     const tasks = await Task.find({ createdBy: user._id }).populate({
       path: "submissions",
-      select: "_id workerName status", // Select only necessary fields
+      select: "_id workerName submissionDetails status", // Select only necessary fields
     });
 
     // Step 3: Initialize states
@@ -159,6 +159,7 @@ export const getAllTasksWithSubmissionData = async (req, res) => {
         pendingTasks.push({
           taskId: task._id,
           title: task.title,
+          payableAmount: task.payableAmount,
           pendingSubmissions,
         });
       }
@@ -324,6 +325,11 @@ export const updateTask = async (req, res) => {
 export const deleteTask = async (req, res) => {
   try {
     const { uid, taskId } = req.params;
+    console.log("uid: ", uid, "taskId: ", taskId);
+
+    if (!uid || !taskId) {
+      return res.status(400).json({ message: "All fields are required." });
+    }
 
     // Step 1: Find the user by firebaseUid
     const user = await User.findOne({ firebaseUid: uid });
