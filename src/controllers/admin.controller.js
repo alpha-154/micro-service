@@ -24,7 +24,7 @@ export const getAdminStats = async (req, res) => {
     }
 
     // Step 3: Check if the user has an admin role
-    if (adminUser.role !== "Admin") {
+    if (adminUser.role !== "ADMIN") {
       return res
         .status(403)
         .json({ message: "You are not authorized to view admin stats" });
@@ -39,9 +39,9 @@ export const getAdminStats = async (req, res) => {
     let totalAvailableCoins = 0;
 
     allUsers.forEach((user) => {
-      if (user.role === "Worker") {
+      if (user.role === "WORKER") {
         totalWorkers++;
-      } else if (user.role === "Buyer") {
+      } else if (user.role === "BUYER") {
         totalBuyers++;
       }
       totalAvailableCoins += user.coins;
@@ -78,16 +78,14 @@ export const getAllUsers = async (req, res) => {
 
     // Step 1: Verify the admin
     const admin = await User.findOne({ firebaseUid: uid });
-    if (!admin || admin.role !== "Admin") {
+    if (!admin || admin.role !== "ADMIN") {
       return res
         .status(403)
         .json({ message: "You are not authorized to view users" });
     }
 
     // Step 2: Fetch all users except Admin
-    const users = await User.find({ role: { $ne: "Admin" } }).select(
-      "username email profileImage role coins"
-    );
+    const users = await User.find({ role: { $ne: "ADMIN" } });
 
     // Step 3: Respond with the user list
     return res.status(200).json({
@@ -116,7 +114,7 @@ export const removeUser = async (req, res) => {
 
     // Step 1: Verify the admin
     const admin = await User.findOne({ firebaseUid: adminUid });
-    if (!admin || admin.role !== "Admin") {
+    if (!admin || admin.role !== "ADMIN") {
       return res
         .status(403)
         .json({ message: "You are not authorized to remove users" });
@@ -129,12 +127,12 @@ export const removeUser = async (req, res) => {
     }
 
     // Step 3: Ensure the user is not an Admin
-    if (user.role === "Admin") {
+    if (user.role === "ADMIN") {
       return res.status(403).json({ message: "You cannot remove an Admin" });
     }
 
-    // Step 4: Remove the user
-    await user.remove();
+     // Step 4: Remove the user
+     await User.deleteOne({ _id: user._id }); // Correctly removing the user
 
     // Step 5: Respond with success
     return res.status(200).json({
@@ -161,7 +159,7 @@ export const updateUserRole = async (req, res) => {
 
     // Step 1: Verify the admin
     const admin = await User.findOne({ firebaseUid: adminUid });
-    if (!admin || admin.role !== "Admin") {
+    if (!admin || admin.role !== "ADMIN") {
       return res
         .status(403)
         .json({ message: "You are not authorized to update user roles" });
@@ -174,13 +172,13 @@ export const updateUserRole = async (req, res) => {
     }
 
     // Step 3: Ensure the user is not an Admin and has a valid role
-    if (user.role === "Admin") {
+    if (user.role === "ADMIN") {
       return res
         .status(403)
         .json({ message: "You cannot update the role of an Admin" });
     }
 
-    if (!["Worker", "Buyer"].includes(newRole)) {
+    if (!["WORKER", "BUYER"].includes(newRole)) {
       return res.status(400).json({ message: "Invalid role provided" });
     }
 
@@ -212,7 +210,7 @@ export const getAllTasksForAdmin = async (req, res) => {
 
     // Step 1: Verify the admin
     const admin = await User.findOne({ firebaseUid: uid });
-    if (!admin || admin.role !== "Admin") {
+    if (!admin || admin.role !== "ADMIN") {
       return res
         .status(403)
         .json({ message: "You are not authorized to view tasks" });
@@ -221,6 +219,9 @@ export const getAllTasksForAdmin = async (req, res) => {
     // Step 2: Fetch all tasks
     const tasks = await Task.find().select(
       "title detail requiredWorkers payableAmount completionDate createdBy"
+    ).populate(
+      "createdBy",
+      "username profileImage"
     );
 
     // Step 3: Check if tasks exist
@@ -252,20 +253,20 @@ export const removeTaskByAdmin = async (req, res) => {
 
     // Step 1: Verify the admin
     const admin = await User.findOne({ firebaseUid: uid });
-    if (!admin || admin.role !== "Admin") {
+    if (!admin || admin.role !== "ADMIN") {
       return res
         .status(403)
         .json({ message: "You are not authorized to remove tasks" });
     }
 
-    // Step 2: Find the task to be removed
-    const task = await Task.findById(taskId);
+    // Step 2: Delete the task document
+    const task = await Task.findByIdAndDelete(taskId);
+
     if (!task) {
       return res.status(404).json({ message: "Task not found" });
     }
 
-    // Step 3: Remove the task
-    await task.remove();
+    
 
     // Step 4: Respond with success
     return res.status(200).json({

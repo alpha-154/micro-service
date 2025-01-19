@@ -18,7 +18,7 @@ export const getWorkerSubmissionStatsWithApprovedSubmissions = async (
 
     // Step 1: Find the user by firebaseUid
     const user = await User.findOne({ firebaseUid: uid });
-    if (!user || user.role !== "Worker") {
+    if (!user || user.role !== "WORKER") {
       return res.status(404).json({ message: "Worker not found" });
     }
 
@@ -70,10 +70,9 @@ export const getWorkerSubmissionStatsWithApprovedSubmissions = async (
 export const getValidTasks = async (req, res) => {
   try {
     // Step 1: Find all tasks where requiredWorkers >= 1, excluding the submissions field
-    const validTasks = await Task.find({ requiredWorkers: { $gte: 1 } }).select(
-      "-submissions"
-    );
-
+    const validTasks = await Task.find({ requiredWorkers: { $gte: 1 } })
+      .select("-submissions")
+      .populate("createdBy", "username"); // Populate createdBy with only the username field
     // Step 2: Check if any tasks are found
     if (validTasks.length === 0) {
       return res.status(404).json({ message: "No valid tasks available" });
@@ -103,7 +102,9 @@ export const getTaskById = async (req, res) => {
     }
 
     // Step 1: Find the task by taskId and exclude the submissions field
-    const task = await Task.findById(taskId).select("-submissions");
+    const task = await Task.findById(taskId)
+      .select("-submissions")
+      .populate("createdBy", "username email");
 
     // Step 2: Check if the task exists
     if (!task) {
@@ -134,6 +135,8 @@ export const submitTask = async (req, res) => {
       buyerId,
       currentDate,
     } = req.body;
+
+    console.log(taskId, title, workerUid, submissionDetails, buyerId);
 
     if (
       !taskId ||
@@ -220,7 +223,12 @@ export const getWorkerSubmissions = async (req, res) => {
     // Step 2: Fetch all submissions for the worker
     const submissions = await Submission.find({
       workerInfo: worker._id,
-    }).select("taskTitle buyerName status submittedAt");
+    })
+      .select("_id taskTitle buyerName status submittedAt taskInfo")
+      .populate({
+        path: "taskInfo",
+        select: "payableAmount", // Only fetch the payableAmount field from the Task model
+      });
 
     // Step 3: Check if there are any submissions
     if (submissions.length === 0) {

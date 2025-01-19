@@ -171,7 +171,7 @@ export const registerUserWithGoogle = async (req, res) => {
 
 
 // Controller to access user profile
-export const accessUserProfile = async (req, res) => {
+export const fetchUserProfile = async (req, res) => {
   try {
     const { uid } = req.params;
     if(!uid){
@@ -188,6 +188,7 @@ export const accessUserProfile = async (req, res) => {
     return res.status(200).json({
       message: "User profile accessed successfully.",
       user: {
+        _id: user._id,
         firebaseUid: user.firebaseUid,
         username: user.username,
         email: user.email,
