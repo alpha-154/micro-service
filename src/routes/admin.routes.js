@@ -1,6 +1,7 @@
 import express from "express";
 import {
-  getAdminStats,
+  getAdminDashboardData,
+  approveWithdrawalRequest,
   getAllUsers,
   removeUser,
   updateUserRole,
@@ -10,7 +11,8 @@ import {
 
 const router = express.Router();
 
-router.get("/get-admin-stats/:uid", getAdminStats);
+router.get("/get-admin-dashboard-data/:uid", getAdminDashboardData);
+router.post("/approve-withdrawal-request", approveWithdrawalRequest);
 router.get("/get-all-users/:uid", getAllUsers);
 router.delete("/remove-user/:adminUid/:userUid", removeUser);
 router.patch("/update-user-role", updateUserRole);

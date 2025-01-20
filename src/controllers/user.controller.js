@@ -131,12 +131,29 @@ export const registerUserWithGoogle = async (req, res) => {
       profileImage
     );
 
+    if(!firebaseUid || !username || !email || !profileImage){
+      return res.status(400).json({ message: "All fields are required." });
+    }
+
     // Check if the user already exists in the database
     const existingUser = await User.findOne({ firebaseUid });
 
     if (existingUser) {
       // User already exists, return 200 status
-      return res.status(200).json({ message: "User already exists." });
+      // Payload for the JWT
+    const payload = {
+      firebaseUid: existingUser.firebaseUid,
+      username: existingUser.username,
+      email: existingUser.email,
+      profileImage: existingUser.profileImage,
+      role: existingUser.role,
+    };
+
+    // Generate a token with a secret key and expiration
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "5h", // Token validity
+    });
+      return res.status(200).json({ message: "User already exists.", token, loggedInUserData: existingUser });
     }
 
     // Create a new user in the database
@@ -151,16 +168,30 @@ export const registerUserWithGoogle = async (req, res) => {
 
     await newUser.save();
 
+    const payload = {
+      firebaseUid: newUser.firebaseUid,
+      username: newUser.username,
+      email: newUser.email,
+      profileImage: newUser.profileImage,
+      role: newUser.role,
+    };
+
+    // Generate a token with a secret key and expiration
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: "5h", // Token validity
+    });
+
     // Return 201 status for a successfully created user
     return res.status(201).json({ 
       message: "User registered successfully!",
-      user: {
+      loggedInUserData: {
         firebaseUid: newUser.firebaseUid,
         username: newUser.username,
         email: newUser.email,
         profileImage: newUser.profileImage,
         role: newUser.role,
       },
+      token
     });
   } catch (error) {
     console.error("Error in registerUser:", error);

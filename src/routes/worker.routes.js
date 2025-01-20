@@ -4,7 +4,8 @@ import {
   getValidTasks,
   getTaskById,
   submitTask,
-  getWorkerSubmissions
+  getWorkerSubmissions,
+  handleWithdrawalRequest
 } from "../controllers/worker.controller.js";
 
 const router = express.Router();
@@ -17,5 +18,6 @@ router.get("/get-valid-tasks", getValidTasks);
 router.get("/get-task-details/:taskId", getTaskById);
 router.post("/submit-task", submitTask);
 router.get("/get-worker-submissions/:uid", getWorkerSubmissions);
+router.post("/withdrawal-request",handleWithdrawalRequest);
 
 export default router;

@@ -1,6 +1,7 @@
 import User from "../models/user.model.js";
 import Task from "../models/task.model.js";
 import Submission from "../models/submission.model.js";
+import Payment from "../models/payment.model.js";
 
 // Controller to create a new task
 export const createTask = async (req, res) => {
@@ -325,7 +326,7 @@ export const updateTask = async (req, res) => {
 export const deleteTask = async (req, res) => {
   try {
     const { uid, taskId } = req.params;
-    console.log("uid: ", uid, "taskId: ", taskId);
+   // console.log("uid: ", uid, "taskId: ", taskId);
 
     if (!uid || !taskId) {
       return res.status(400).json({ message: "All fields are required." });
@@ -365,3 +366,115 @@ export const deleteTask = async (req, res) => {
   }
 };
 
+// Controller to purchase coins
+export const purchaseCoins = async (req, res) => {
+  try {
+    const { buyerId, coinsPurchased, amountPaid } = req.body;
+
+    // Validate request body
+    if (!buyerId || !coinsPurchased || !amountPaid) {
+      return res.status(400).json({
+        message: "Buyer ID, coinsPurchased, and amountPaid are required.",
+      });
+    }
+
+    // Validate coin and payment amount values
+    if (coinsPurchased <= 0 || amountPaid <= 0) {
+      return res.status(400).json({
+        message: "Coins purchased and amount paid must be greater than zero.",
+      });
+    }
+
+    // Step 1: Find the buyer
+    const buyer = await User.findById(buyerId);
+
+    if (!buyer) {
+      return res.status(404).json({
+        message: "Buyer not found. Please provide a valid Buyer ID.",
+      });
+    }
+
+    // Step 2: Verify buyer role
+    if (buyer.role !== "BUYER") {
+      return res.status(403).json({
+        message: "Only buyers can purchase coins.",
+      });
+    }
+
+    // Step 3: Update the buyer's coins
+    buyer.coins = (buyer.coins || 0) + Number(coinsPurchased); // Handle undefined coins field
+    await buyer.save();
+
+    // Step 4: Create a payment record
+    const payment = new Payment({
+      buyer: buyer._id,
+      coinsPurchased,
+      amountPaid: Number(amountPaid),
+    });
+    await payment.save();
+
+    // Step 5: Respond with success message
+    return res.status(200).json({
+      message: "Coins purchased successfully."
+      
+    });
+  } catch (error) {
+    console.error("Error during coin purchase:", error);
+    return res.status(500).json({
+      message: "Internal server error. Unable to process coin purchase.",
+    });
+  }
+};
+
+
+// Controller to fetch all the payment documents for a buyer
+export const getBuyerPayments = async (req, res) => {
+  try {
+    const { uid } = req.params; // Buyer's firebaseUid from the frontend
+
+    // Validate the input
+    if (!uid) {
+      return res.status(400).json({
+        message: "Buyer's UID is required.",
+      });
+    }
+
+    // Step 1: Find the buyer by firebaseUid
+    const buyer = await User.findOne({ firebaseUid: uid });
+
+    if (!buyer) {
+      return res.status(404).json({
+        message: "Buyer not found. Please provide a valid UID.",
+      });
+    }
+
+    // Step 2: Verify that the user is a buyer
+    if (buyer.role !== "BUYER") {
+      return res.status(403).json({
+        message: "Access denied. Only buyers can view payment history.",
+      });
+    }
+
+    // Step 3: Fetch payment documents for the buyer
+    const payments = await Payment.find({ buyer: buyer._id });
+
+    // Step 4: Check if there are no payments
+    if (payments.length === 0) {
+      return res.status(200).json({
+        message: "No payment history found for this buyer.",
+        payments: [],
+      });
+    }
+
+    // Step 5: Respond with the payment data
+    return res.status(200).json({
+      message: "Payment history retrieved successfully.",
+      payments,
+    });
+  } catch (error) {
+    console.error("Error fetching payment history:", error);
+    return res.status(500).json({
+      message: "Internal server error. Unable to fetch payment history.",
+    });
+  }
+};

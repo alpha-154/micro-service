@@ -17,7 +17,7 @@ const withdrawalSchema = new mongoose.Schema(
     }, // Amount in dollars (20 coins = $1)
     paymentSystem: {
       type: String,
-      enum: ["Stripe", "Bkash", "Nagad", "Other"],
+      enum: ["Stripe", "Bkash", "Nagad"],
       required: true,
     },
     accountNumber: {

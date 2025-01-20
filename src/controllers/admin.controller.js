@@ -1,39 +1,32 @@
 import User from "../models/user.model.js";
 import Task from "../models/task.model.js";
-
+import Withdrawal from "../models/withdrawal.model.js";
 // Controller to get admin stats ( total no: of worker, buyers & total coins)
 // Todo: add pagination & filtering options here, also use redis to cache
-// frequently used data
-export const getAdminStats = async (req, res) => {
+// Controller to fetch admin stats & pending withdrawals
+export const getAdminDashboardData = async (req, res) => {
   try {
     const { uid } = req.params; // Admin UID from the frontend
 
+    // Validate input
     if (!uid) {
-      return res.status(400).json({ message: "UID is required" });
+      return res.status(400).json({ message: "Admin UID is required." });
     }
 
-    // Step 1: Check if UID is provided
-    if (!uid) {
-      return res.status(400).json({ message: "UID is required" });
+    // Step 1: Verify the user is an admin
+    const admin = await User.findOne({ firebaseUid: uid });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin user not found." });
     }
 
-    // Step 2: Find the user by firebaseUid
-    const adminUser = await User.findOne({ firebaseUid: uid });
-    if (!adminUser) {
-      return res.status(404).json({ message: "Admin user not found" });
+    if (admin.role !== "ADMIN") {
+      return res.status(403).json({ message: "Access denied. Admin only." });
     }
 
-    // Step 3: Check if the user has an admin role
-    if (adminUser.role !== "ADMIN") {
-      return res
-        .status(403)
-        .json({ message: "You are not authorized to view admin stats" });
-    }
-
-    // Step 4: Retrieve all users
+    // Step 2: Retrieve all users to calculate stats
     const allUsers = await User.find();
 
-    // Step 5: Calculate the stats
     let totalWorkers = 0;
     let totalBuyers = 0;
     let totalAvailableCoins = 0;
@@ -44,28 +37,39 @@ export const getAdminStats = async (req, res) => {
       } else if (user.role === "BUYER") {
         totalBuyers++;
       }
-      totalAvailableCoins += user.coins;
+      totalAvailableCoins += user.coins || 0; // Default to 0 if `coins` is undefined
     });
 
-    // Step 6: Respond with the stats
+    // Step 3: Fetch all pending withdrawals
+    const pendingWithdrawals = await Withdrawal.find({ status: "pending" }).populate(
+      "worker",
+      "username email"
+    );
+
+    // Step 4: Respond with stats and pending withdrawals
     return res.status(200).json({
-      message: "Admin stats retrieved successfully",
-      stats: {
-        totalWorkers,
-        totalBuyers,
-        totalAvailableCoins,
+      message: "Admin dashboard data retrieved successfully.",
+      data: {
+        stats: {
+          totalWorkers,
+          totalBuyers,
+          totalAvailableCoins,
+        },
+        pendingWithdrawals: pendingWithdrawals?.length > 0
+          ? pendingWithdrawals
+          : [],
       },
     });
   } catch (error) {
-    console.error("Error fetching admin stats:", error);
+    console.error("Error fetching admin dashboard data:", error);
     return res.status(500).json({
-      message:
-        "Server error. Unable to fetch admin stats. Please try again later.",
+      message: "Internal server error. Please try again later.",
     });
   }
 };
 
-// add withdrawal acceptance controller here
+
+
 
 // Controler for fetching all Users list
 export const getAllUsers = async (req, res) => {
@@ -277,5 +281,77 @@ export const removeTaskByAdmin = async (req, res) => {
     return res.status(500).json({
       message: "Server error. Unable to remove task. Please try again later.",
     });
+  }
+};
+
+
+
+
+// Controller to approve a withdrawal request
+
+export const approveWithdrawalRequest = async (req, res) => {
+  try {
+    const { adminUid, withdrawalId } = req.body;
+
+    // Validate input
+    if (!adminUid || !withdrawalId) {
+      return res.status(400).json({ message: "Admin UID and Withdrawal ID are required." });
+    }
+
+    // Verify the user is an admin
+    const admin = await User.findOne({ firebaseUid: adminUid });
+
+    if (!admin) {
+      return res.status(404).json({ message: "Admin not found." });
+    }
+
+    if (admin.role !== "ADMIN") {
+      return res.status(403).json({ message: "Access denied. Admin only." });
+    }
+
+    // Fetch the withdrawal request
+    const withdrawal = await Withdrawal.findById(withdrawalId).populate("worker", "_id username email coins");
+
+    if (!withdrawal) {
+      return res.status(404).json({ message: "Withdrawal request not found." });
+    }
+
+    // Ensure the withdrawal is still pending
+    if (withdrawal.status !== "pending") {
+      return res.status(400).json({ message: "Only pending withdrawal requests can be approved." });
+    }
+
+    // Find the worker and update coins
+    const worker = await User.findById(withdrawal.worker._id);
+
+    if (!worker) {
+      return res.status(404).json({ message: "Worker not found." });
+    }
+
+    if (worker.coins < withdrawal.coins) {
+      return res.status(400).json({
+        message: `Worker does not have enough coins to process the withdrawal. Current coins: ${worker.coins}`,
+      });
+    }
+
+    // Deduct the coins and save the worker
+    worker.coins -= withdrawal.coins;
+    await worker.save();
+
+    // Update the withdrawal status to "approved"
+    withdrawal.status = "approved";
+    await withdrawal.save();
+
+    // Respond with success
+    return res.status(200).json({
+      message: "Withdrawal request approved successfully.",
+      withdrawal,
+     
+    });
+  } catch (error) {
+    console.error("Error approving withdrawal request:", error);
+    return res
+      .status(500)
+      .json({ message: "Internal server error. Please try again later." });
   }
 };
